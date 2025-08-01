@@ -5,17 +5,18 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - aws --version
-      - $(aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com)
-      - REPOSITORY_URI=$(aws cloudformation describe-stacks --stack-name pipeline-stack --query "Stacks[0].Outputs[?ExportName=='FlaskECRRepositoryUri'].OutputValue" --output text)
-      - IMAGE_TAG=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - $(aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com)
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/flask-app-repo
+      - IMAGE_TAG=latest
   build:
     commands:
       - echo Build started on `date`
+      - echo Building the Docker image...
       - docker build -t $REPOSITORY_URI:$IMAGE_TAG .
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
   post_build:
     commands:
       - echo Build completed on `date`
-      - printf '[{"name":"flask-container","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo Pushing the Docker image...
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
 artifacts:
-  files: imagedefinitions.json
+  files: '**/*'
